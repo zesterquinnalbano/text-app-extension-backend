@@ -21,7 +21,8 @@ $router->group(['middleware' => 'auth'], function ($router) {
     $router->group(['prefix' => 'auth'], function ($router) {
         $router->post('logout', 'AuthenticationController@logout');
         $router->post('refresh', 'AuthenticationController@refresh');
-        $router->post('user', 'AuthenticationController@user');
+        $router->get('user', 'AuthenticationController@user');
+        $router->patch('update-user', 'AuthenticationController@update');
     });
 
     $router->group(['prefix' => 'contacts'], function ($router) {
@@ -37,6 +38,7 @@ $router->group(['middleware' => 'auth'], function ($router) {
         $router->post('send', 'ConversationController@store');
         $router->post('send-new', 'ConversationController@sendNew');
         $router->get('{id}', 'ConversationController@show');
+        $router->patch('{id}/update-new-message', 'ConversationController@update');
         $router->post('{id}/destroy', 'ConversationController@destroy');
     });
 

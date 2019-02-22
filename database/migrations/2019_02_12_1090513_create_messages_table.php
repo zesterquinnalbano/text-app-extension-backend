@@ -19,6 +19,7 @@ class CreateMessagesTable extends Migration
             $table->unsignedInteger('sent_by')->nullable();
             $table->enum('direction', ['INBOUND', 'OUTBOUND']);
             $table->text('message');
+            $table->boolean('new_message')->default(false);
             $table->string('status')->nullable();
             $table->timestamps();
             $table->softDeletes();

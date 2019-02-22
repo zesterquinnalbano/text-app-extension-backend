@@ -4,36 +4,44 @@ namespace App\Http\Controllers;
 
 use App\Contact;
 use App\Conversation;
+use App\Helpers\TwilioHelper;
 use App\Message;
 use App\TwilioNumber;
 use Auth;
 use Carbon\Carbon;
 use DB;
 use Illuminate\Http\Request;
-use Log;
 use Pusher\Pusher;
-use Twilio\Rest\Client;
 
 class ConversationController extends Controller
 {
-    /**
-     * Assign Twilio Client
-     * @return TwilioClient
-     */
-    protected $twilioClient = null;
+    protected $carbon;
 
     public function __construct()
     {
-        $this->twilioClient = new Client(env('TWILIO_SID'), env('TWILIO_TOKEN'));
+        $this->carbon = Carbon::now();
     }
 
-    public function index()
+    public function index(Request $request)
     {
-        $conversation = Conversation::has('messages')
+        $param = json_decode($request->q);
+
+        $conversation = Conversation::query();
+
+        $conversation->when(isset($param->query), function ($query) use ($param) {
+            $query->whereHas('contact', function ($query) use ($param) {
+                $query->where('firstname', 'like', "%$param->query%")
+                    ->orWhere('lastname', 'like', "%$param->query%");
+            });
+        });
+
+        $conversation = $conversation->has('messages')
             ->with(['message' => function ($query) {
                 $query->orderByDesc('id');
             }, 'contact'])
-            ->paginate(15);
+            ->limit($param->limit)->offset($param->offset)
+            ->orderBy('updated_at')
+            ->get();
 
         return response()->json([
             'result' => true,
@@ -45,7 +53,7 @@ class ConversationController extends Controller
      * Send and store message
      *
      */
-    public function store(Request $request)
+    public function store(Request $request, TwilioHelper $twilioHelper)
     {
         $validatedInput = $this->validate($request, [
             'conversation_id' => 'sometimes',
@@ -54,7 +62,7 @@ class ConversationController extends Controller
             'message' => 'required|min:1',
         ]);
 
-        $message = Message::send($this->twilioClient, $validatedInput);
+        $message = $twilioHelper->send($validatedInput);
 
         $messageStatus = null;
 
@@ -70,8 +78,8 @@ class ConversationController extends Controller
                 'message' => $validatedInput['message'],
                 'sent_by' => Auth::id(),
                 'direction' => 'OUTBOUND',
-                'status' => 'sent',
-                'created_at' => Carbon::now('GMT+08:00'),
+                'status' => $message['status'],
+                'created_at' => $this->carbon,
             ]);
         }, 3);
 
@@ -84,13 +92,40 @@ class ConversationController extends Controller
 
     }
 
-    public function sendNew(Request $request)
+    public function sendNew(Request $request, TwilioHelper $twilioHelper)
     {
         $validatedInput = $this->validate($request, [
-            'contact_number_ids' => 'required|array|exists:contacts,id',
+            'contact_number_id' => 'required|array|exists:contacts,id',
             'twilio_number_id' => 'required|exists:twilio_numbers,id',
             'message' => 'required|min:1',
         ]);
+
+        $message = $twilioHelper->sendMany($validatedInput);
+
+        DB::transaction(function () use ($validatedInput, &$messageStatus, $message) {
+
+            for ($i = 0; $i < count($message['contact_ids']); $i++) {
+
+                $conversation = Conversation::firstOrCreate([
+                    'contact_id' => $message['contact_ids'][$i],
+                ], [
+                    'twilio_number_id' => $validatedInput['twilio_number_id'],
+                ]);
+
+                $messageStatus = $conversation->message()->create([
+                    'message' => $validatedInput['message'],
+                    'sent_by' => Auth::id(),
+                    'direction' => 'OUTBOUND',
+                    'status' => $message['result'][$i]['status'],
+                    'created_at' => $this->carbon,
+                ]);
+            }
+
+        }, 3);
+
+        return response()->json([
+            'result' => true,
+        ], 200);
 
     }
 
@@ -118,9 +153,29 @@ class ConversationController extends Controller
     }
 
     /**
+     * Update new message checker
+     *
+     * @param Integer $id
+     * @return Boolean
+     */
+    public function update($id)
+    {
+        $conversation = Conversation::whereContactId($id)->first();
+
+        $conversation->message()->update([
+            'new_message' => false,
+        ]);
+
+        return response()->json([
+            'result' => true,
+        ]);
+    }
+
+    /**
      * Delete the conversation
      *
      * @param ConversationId
+     *
      * @return Boolean
      */
     public function destroy($id)
@@ -131,26 +186,6 @@ class ConversationController extends Controller
             'result' => true,
         ]);
     }
-
-    // 'ToCountry' => 'CA',
-    // 'ToState' => 'ON',
-    // 'SmsMessageSid' => 'SM180ac63e2e76c5d4522cb280627a24ea',
-    // 'NumMedia' => '0',
-    // 'ToCity' => 'Toronto',
-    // 'FromZip' => '',
-    // 'SmsSid' => 'SM180ac63e2e76c5d4522cb280627a24ea',
-    // 'FromState' => 'ON',
-    // 'SmsStatus' => 'received',
-    // 'FromCity' => 'TORONTO',
-    // 'Body' => 'Hello',
-    // 'FromCountry' => 'CA',
-    // 'To' => '+16475034763',
-    // 'ToZip' => '',
-    // 'NumSegments' => '1',
-    // 'MessageSid' => 'SM180ac63e2e76c5d4522cb280627a24ea',
-    // 'AccountSid' => 'ACca3193a758e9416d172b14c230631bde',
-    // 'From' => '+16479311820',
-    // 'ApiVersion' => '2010-04-01',
 
     public static function recieve(Request $request)
     {
@@ -168,24 +203,21 @@ class ConversationController extends Controller
                 'message' => $request->Body,
                 'direction' => 'INBOUND',
                 'status' => $request['SmsStatus'],
-                'created_at' => Carbon::now('GMT+08:00'),
+                'created_at' => $this->carbon,
+                'new_message' => true,
             ]);
 
             $messageResponse = $message;
         });
 
-        $pusherOptions = array(
-            'cluster' => env('PUSHER_APP_CLUSTER'),
-            'useTLS' => true,
-        );
+        $messageResponse['contact_id'] = $contact->id;
 
-        $pusher = new Pusher(env('PUSHER_APP_KEY'), env("PUSHER_APP_SECRET"), env("PUSHER_APP_ID"), $pusherOptions);
+        $pusher = new Pusher(env('PUSHER_APP_KEY'), env("PUSHER_APP_SECRET"), env("PUSHER_APP_ID"), ['cluster' => env('PUSHER_APP_CLUSTER'),
+            'useTLS' => true]);
 
         $pusher->trigger('inbox-channel', 'new-message-recieved-event', [
-            'message' => $messageResponse,
+            'data' => $messageResponse,
         ]);
-
-        Log::info($messageResponse);
 
         return response()->json([
             'result' => true,

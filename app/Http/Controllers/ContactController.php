@@ -10,16 +10,20 @@ class ContactController extends Controller
 {
     public function index(Request $request)
     {
+        $param = json_decode($request->q);
         $contact = Contact::query();
 
-        $contact->when($request->q, function ($query) use ($request) {
-            $query->where(function ($query) use ($request) {
-                $query->where('firstname', 'like', "%$request->q%")
-                    ->orWhere('lastname', 'like', "%$request->q%");
+        $contact->when(isset($param->query), function ($query) use ($param) {
+            $query->where(function ($query) use ($param) {
+                $query->where('firstname', 'like', "%$param->query%")
+                    ->orWhere('lastname', 'like', "%$param->query%");
             });
         });
 
-        $contact = $contact->orderBy('firstname')->paginate(15);
+        $contact = $contact->orderBy('firstname')
+            ->limit($param->limit)
+            ->offset($param->offset)
+            ->get();
 
         return response()->json([
             'result' => true,
@@ -35,7 +39,11 @@ class ContactController extends Controller
             'contact_number' => 'required|unique:contacts,contact_number',
         ]);
 
-        $validatedInput['contact_number'] = '+' . $validatedInput['contact_number'];
+        $pos = strpos($validatedInput['contact_number'], '+');
+
+        if ($pos === false) {
+            $validatedInput['contact_number'] = '+' . $validatedInput['contact_number'];
+        }
 
         $contact = Contact::create($validatedInput);
 
@@ -67,7 +75,11 @@ class ContactController extends Controller
             'contact_number' => ['required', Rule::unique('contacts', 'contact_number')->ignore($contact->id)],
         ]);
 
-        $validatedInput['contact_number'] = '+' . $validatedInput['contact_number'];
+        $pos = strpos($validatedInput['contact_number'], '+');
+
+        if ($pos === false) {
+            $validatedInput['contact_number'] = '+' . $validatedInput['contact_number'];
+        }
 
         $contact = tap($contact)->update($validatedInput);
 
