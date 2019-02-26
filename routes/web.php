@@ -50,4 +50,5 @@ $router->group(['middleware' => 'auth'], function ($router) {
 
 $router->group(['prefix' => 'twilio'], function ($router) {
     $router->post('recieve-message', 'ConversationController@recieve');
+    $router->post('update-message', 'ConversationController@updateMessage');
 });

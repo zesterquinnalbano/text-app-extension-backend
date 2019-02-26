@@ -18,7 +18,7 @@ class AuthenticationController extends Controller
             'password.required' => 'The token field is required',
         ]);
 
-        if ($token = Auth::setTTL(7200)->attempt($request->toArray())) {
+        if ($token = Auth::attempt($request->toArray())) {
             return $this->respondWithToken($token);
         } else {
             return response()->json(['error' => 'Invalid username or token'], 401);
@@ -60,7 +60,8 @@ class AuthenticationController extends Controller
 
     public function refresh()
     {
-        return $this->respondWithToken(Auth::refresh());
+        return true;
+        // return $this->respondWithToken(Auth::refresh());
     }
 
     protected function respondWithToken($token)

@@ -5,6 +5,7 @@ namespace App\Helpers;
 use App\Contact;
 use App\TwilioNumber;
 use Twilio\Rest\Client;
+use Twilio\Services\Twilio;
 
 class TwilioHelper
 {
@@ -16,7 +17,7 @@ class TwilioHelper
 
     public function __construct()
     {
-        self::$twilioClient = new Client(env('TWILIO_SID'), env('TWILIO_TOKEN'));
+        self::$twilioClient = new Twilio_Services(env('TWILIO_SID'), env('TWILIO_TOKEN'));
     }
 
     /**
@@ -31,17 +32,16 @@ class TwilioHelper
         $twilioNumber = TwilioNumber::findOrFail($request['twilio_number_id']);
         $contact = Contact::findOrFail($request['contact_number_id']);
 
-        $message = self::$twilioClient->messages->create(
-            $contact->contact_number,
+        $message = self::$twilioClient->account->messages->create(
             [
-                'from' => $twilioNumber->contact_number,
-                'body' => $request['message'],
+                'To' => $contact->contact_number,
+                'From' => $twilioNumber->contact_number,
+                'Body' => $request['message'],
+                'StatusCallback' => env('TWILIO_STATUS_CALLBACK_URL'),
             ]
         );
 
-        $result = self::$twilioClient->messages($message->sid)->fetch();
-
-        return ['status' => $result->status];
+        return ['status' => $message->status];
     }
 
     /**
@@ -57,15 +57,14 @@ class TwilioHelper
 
         collect($contacts)->each(function ($contact, $key) use ($request, $twilioNumber, &$message) {
             if ($contact != null) {
-                $result = self::$twilioClient->messages->create(
-                    $contact->contact_number,
+                $result = self::$twilioClient->account->messages->create(
                     [
-                        'from' => $twilioNumber->contact_number,
-                        'body' => $request['message'],
+                        'To' => $contact->contact_number,
+                        'From' => $twilioNumber->contact_number,
+                        'Body' => $request['message'],
+                        'StatusCallback' => env('TWILIO_STATUS_CALLBACK_URL'),
                     ]
                 );
-
-                $result = self::$twilioClient->messages($result->sid)->fetch();
 
                 $message['result'][] = ['status' => $result->status, 'contact_ids' => $contact->id];
                 $message['contact_ids'][] = $contact->id;

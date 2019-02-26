@@ -187,6 +187,30 @@ class ConversationController extends Controller
         ]);
     }
 
+    public static function updateMessage(Request $request)
+    {
+        $twilioNumber = TwilioNumber::whereContactNumber($request->To)->firstorFail();
+        $contact = Contact::whereContactNumber($request->From)->firstOrFail();
+
+        DB::transaction(function () {
+            $conversation = Conversation::find([
+                'contact_id' => $contact->id,
+                'twilio_number_id' => $twilioNumber->id,
+            ]);
+
+            if ($conversation) {
+                $updatedConversation = tap($conversation->message())->update(['status' => $request->MessageStatus]);
+
+                $pusher = new Pusher(env('PUSHER_APP_KEY'), env("PUSHER_APP_SECRET"), env("PUSHER_APP_ID"), ['cluster' => env('PUSHER_APP_CLUSTER'),
+                    'useTLS' => true]);
+
+                $pusher->trigger('message-channel', 'update-message-status-event', [
+                    'data' => $updatedConversation,
+                ]);
+            }
+        }, 3);
+    }
+
     public static function recieve(Request $request)
     {
         $twilioNumber = TwilioNumber::whereContactNumber($request->To)->firstorFail();
@@ -203,7 +227,7 @@ class ConversationController extends Controller
                 'message' => $request->Body,
                 'direction' => 'INBOUND',
                 'status' => $request['SmsStatus'],
-                'created_at' => $this->carbon,
+                'created_at' => $request->date_created,
                 'new_message' => true,
             ]);
 
