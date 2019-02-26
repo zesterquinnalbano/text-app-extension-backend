@@ -5,7 +5,6 @@ namespace App\Helpers;
 use App\Contact;
 use App\TwilioNumber;
 use Twilio\Rest\Client;
-use Twilio\Services\Twilio;
 
 class TwilioHelper
 {
@@ -17,7 +16,7 @@ class TwilioHelper
 
     public function __construct()
     {
-        self::$twilioClient = new Twilio_Services(env('TWILIO_SID'), env('TWILIO_TOKEN'));
+        self::$twilioClient = new Client(env('TWILIO_SID'), env('TWILIO_TOKEN'));
     }
 
     /**
@@ -33,11 +32,11 @@ class TwilioHelper
         $contact = Contact::findOrFail($request['contact_number_id']);
 
         $message = self::$twilioClient->account->messages->create(
+            $contact->contact_number,
             [
-                'To' => $contact->contact_number,
-                'From' => $twilioNumber->contact_number,
-                'Body' => $request['message'],
-                'StatusCallback' => env('TWILIO_STATUS_CALLBACK_URL'),
+                'from' => $twilioNumber->contact_number,
+                'body' => $request['message'],
+                'statusCallback' => env('TWILIO_STATUS_CALLBACK_URL'),
             ]
         );
 
@@ -58,11 +57,11 @@ class TwilioHelper
         collect($contacts)->each(function ($contact, $key) use ($request, $twilioNumber, &$message) {
             if ($contact != null) {
                 $result = self::$twilioClient->account->messages->create(
+                    $contact->contact_number,
                     [
-                        'To' => $contact->contact_number,
-                        'From' => $twilioNumber->contact_number,
-                        'Body' => $request['message'],
-                        'StatusCallback' => env('TWILIO_STATUS_CALLBACK_URL'),
+                        'from' => $twilioNumber->contact_number,
+                        'body' => $request['message'],
+                        'statusCallback' => env('TWILIO_STATUS_CALLBACK_URL'),
                     ]
                 );
 
