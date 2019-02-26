@@ -35,5 +35,9 @@ class ImportController extends Controller implements ToCollection
         }
 
         Contacts::insert($contacts);
+
+        return response()->json([
+            'result' => true,
+        ]);
     }
 }
