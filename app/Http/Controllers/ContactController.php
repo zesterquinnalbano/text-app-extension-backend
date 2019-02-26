@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Contact;
+use App\Http\Controllers\ImportController;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Maatwebsite\Excel\Facades\Excel;
 
 class ContactController extends Controller
 {
@@ -98,5 +100,10 @@ class ContactController extends Controller
         return response()->json([
             'result' => true,
         ]);
+    }
+
+    public function import(Request $request)
+    {
+        Excel::import(new ImportController);
     }
 }
