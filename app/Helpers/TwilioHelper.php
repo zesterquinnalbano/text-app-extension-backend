@@ -31,7 +31,7 @@ class TwilioHelper
         $twilioNumber = TwilioNumber::findOrFail($request['twilio_number_id']);
         $contact = Contact::findOrFail($request['contact_number_id']);
 
-        $message = self::$twilioClient->account->messages->create(
+        $message = self::$twilioClient->messages->create(
             $contact->contact_number,
             [
                 'from' => $twilioNumber->contact_number,
@@ -40,7 +40,7 @@ class TwilioHelper
             ]
         );
 
-        return ['status' => $message->status];
+        return ['status' => $message->status, 'created_at' => $message->dateCreated];
     }
 
     /**
@@ -56,7 +56,7 @@ class TwilioHelper
 
         collect($contacts)->each(function ($contact, $key) use ($request, $twilioNumber, &$message) {
             if ($contact != null) {
-                $result = self::$twilioClient->account->messages->create(
+                $result = self::$twilioClient->messages->create(
                     $contact->contact_number,
                     [
                         'from' => $twilioNumber->contact_number,
@@ -65,7 +65,7 @@ class TwilioHelper
                     ]
                 );
 
-                $message['result'][] = ['status' => $result->status, 'contact_ids' => $contact->id];
+                $message['result'][] = ['status' => $result->status, 'contact_ids' => $contact->id, 'created_at' => $result->dateCreated];
                 $message['contact_ids'][] = $contact->id;
             }
         });

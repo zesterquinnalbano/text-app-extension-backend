@@ -79,7 +79,7 @@ class ConversationController extends Controller
                 'sent_by' => Auth::id(),
                 'direction' => 'OUTBOUND',
                 'status' => $message['status'],
-                'created_at' => $this->carbon,
+                'created_at' => $message['created_at'],
             ]);
         }, 3);
 
@@ -117,7 +117,7 @@ class ConversationController extends Controller
                     'sent_by' => Auth::id(),
                     'direction' => 'OUTBOUND',
                     'status' => $message['result'][$i]['status'],
-                    'created_at' => $this->carbon,
+                    'created_at' => $message['result'][$i]['created_at'],
                 ]);
             }
 
@@ -187,26 +187,29 @@ class ConversationController extends Controller
         ]);
     }
 
-    public static function updateMessage(Request $request)
+    public function updateMessageStatus(Request $request)
     {
-        $twilioNumber = TwilioNumber::whereContactNumber($request->To)->firstorFail();
-        $contact = Contact::whereContactNumber($request->From)->firstOrFail();
-
-        DB::transaction(function () {
-            $conversation = Conversation::find([
-                'contact_id' => $contact->id,
-                'twilio_number_id' => $twilioNumber->id,
-            ]);
+        DB::transaction(function () use ($request) {
+            $conversation = Conversation::where(function ($query) use ($request) {
+                $query->whereHas('contact', function ($query) use ($request) {
+                    $query->whereContactNumber($request->To);
+                })->whereHas('twilioNumber', function ($query) use ($request) {
+                    $query->whereContactNumber($request->From);
+                });
+            })
+                ->with('latestMessage')
+                ->first();
 
             if ($conversation) {
-                $updatedConversation = tap($conversation->message())->update(['status' => $request->MessageStatus]);
+                $conversation->latestMessage->update(['status' => $request->MessageStatus]);
 
                 $pusher = new Pusher(env('PUSHER_APP_KEY'), env("PUSHER_APP_SECRET"), env("PUSHER_APP_ID"), ['cluster' => env('PUSHER_APP_CLUSTER'),
                     'useTLS' => true]);
 
                 $pusher->trigger('message-channel', 'update-message-status-event', [
-                    'data' => $updatedConversation,
+                    'data' => $conversation->latestMessage,
                 ]);
+
             }
         }, 3);
     }
@@ -227,7 +230,7 @@ class ConversationController extends Controller
                 'message' => $request->Body,
                 'direction' => 'INBOUND',
                 'status' => $request['SmsStatus'],
-                'created_at' => $request->date_created,
+                'created_at' => Carbon::now(),
                 'new_message' => true,
             ]);
 
@@ -241,10 +244,6 @@ class ConversationController extends Controller
 
         $pusher->trigger('inbox-channel', 'new-message-recieved-event', [
             'data' => $messageResponse,
-        ]);
-
-        return response()->json([
-            'result' => true,
         ]);
     }
 }
