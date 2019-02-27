@@ -212,6 +212,8 @@ class ConversationController extends Controller
 
             }
         }, 3);
+
+        return response()->json([], 200);
     }
 
     public static function recieve(Request $request)
@@ -245,5 +247,7 @@ class ConversationController extends Controller
         $pusher->trigger('inbox-channel', 'new-message-recieved-event', [
             'data' => $messageResponse,
         ]);
+
+        return response()->json([], 200);
     }
 }
