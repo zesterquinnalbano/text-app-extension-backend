@@ -8,7 +8,7 @@ class Contact extends Model
         'firstname',
         'lastname',
         'contact_number',
-        // 'country',
+        'created_by',
     ];
 
     protected $appends = [
@@ -30,5 +30,4 @@ class Contact extends Model
     {
         return $this->hasMany('App\Message', 'from');
     }
-
 }

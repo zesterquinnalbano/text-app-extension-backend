@@ -36,9 +36,15 @@ class ConversationController extends Controller
         });
 
         $conversation = $conversation->has('messages')
-            ->with(['message' => function ($query) {
-                $query->orderByDesc('id');
-            }, 'contact'])
+            ->whereHas('contact', function ($query) {
+                $query->whereCreatedBy(Auth::id());
+            })
+            ->with([
+                'message' => function ($query) {
+                    $query->orderByDesc('id');
+                },
+                'contact',
+            ])
             ->limit($param->limit)->offset($param->offset)
             ->orderBy('updated_at')
             ->get();

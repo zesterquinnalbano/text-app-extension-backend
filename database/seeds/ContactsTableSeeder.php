@@ -17,6 +17,7 @@ class ContactsTableSeeder extends Seeder
                 'firstname' => '[test]:',
                 'lastname' => '16479311820',
                 'contact_number' => '+16479311820',
+                'created_by' => 1,
             ],
         ]);
     }

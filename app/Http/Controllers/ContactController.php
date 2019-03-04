@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Contact;
 use App\Http\Controllers\ImportController;
+use Auth;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Maatwebsite\Excel\Facades\Excel;
@@ -22,7 +23,8 @@ class ContactController extends Controller
             });
         });
 
-        $contact = $contact->orderBy('firstname')
+        $contact = $contact->whereCreatedBy(Auth::id())
+            ->orderBy('firstname')
             ->limit($param->limit)
             ->offset($param->offset)
             ->get();
@@ -46,6 +48,8 @@ class ContactController extends Controller
         if ($pos === false) {
             $validatedInput['contact_number'] = '+' . $validatedInput['contact_number'];
         }
+
+        $validatedInput['created_by'] = Auth::id();
 
         $contact = Contact::create($validatedInput);
 
@@ -104,6 +108,8 @@ class ContactController extends Controller
 
     public function import(Request $request)
     {
+        var_dump('asd');
+        die();
         Excel::import(new ImportController);
     }
 }
