@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Contact;
 use App\ContactGroup;
-use App\Http\Controllers\ImportController;
+use App\Imports\ContactImport;
 use Auth;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -146,6 +146,13 @@ class ContactController extends Controller
 
     public function import(Request $request)
     {
-        Excel::import(new ImportController);
+        if ($request->hasFile('file')) {
+            Excel::import(new ContactImport, $request->file('file'));
+
+            return response()->json([
+                'result' => true,
+                'message' => 'success',
+            ]);
+        }
     }
 }

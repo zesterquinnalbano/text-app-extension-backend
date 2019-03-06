@@ -10,7 +10,6 @@
 | and give it the Closure to call when that URI is requested.
 |
  */
-use Illuminate\Http\Request;
 // $router->get('/', function () use ($router) {
 //     return $router->app->version();
 // });
@@ -32,6 +31,7 @@ $router->group(['middleware' => 'auth'], function ($router) {
         $router->patch('{id}/update', 'ContactController@update');
         $router->post('{id}/destroy', 'ContactController@destroy');
         $router->get('search', 'ContactController@search');
+        $router->post('import', 'ContactController@import');
     });
 
     $router->group(['prefix' => 'conversations'], function ($router) {
@@ -54,9 +54,4 @@ $router->group(['middleware' => 'auth'], function ($router) {
 $router->group(['prefix' => 'twilio'], function ($router) {
     $router->post('recieve-message', 'ConversationController@recieve');
     $router->post('update-message-status', 'ConversationController@updateMessageStatus');
-});
-
-$router->post('contacts/import', function (Request $request) {
-    return response()->json(['data' => $request->toArray()]);
-
 });
