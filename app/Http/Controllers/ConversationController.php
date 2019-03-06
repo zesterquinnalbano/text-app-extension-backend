@@ -119,7 +119,7 @@ class ConversationController extends Controller
                 ]);
 
                 $messageStatus = $conversation->message()->create([
-                    'message' => $validatedInput['message'],
+                    'message' => $message['result'][$i]['message'],
                     'sent_by' => Auth::id(),
                     'direction' => 'OUTBOUND',
                     'status' => $message['result'][$i]['status'],

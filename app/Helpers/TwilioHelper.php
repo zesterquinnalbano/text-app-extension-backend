@@ -64,16 +64,18 @@ class TwilioHelper
 
         collect($contacts->flatten(2)->unique('id')->all())->each(function ($contact, $key) use ($request, $twilioNumber, &$message) {
             if ($contact != null) {
+                $firstParse = str_replace("{{firstname}}", $contact->firstname, $request['message']);
+                $parseMessage = str_replace("{{lastname}}", $contact->lastname, $firstParse);
                 $result = self::$twilioClient->messages->create(
                     $contact->contact_number,
                     [
                         'from' => $twilioNumber->contact_number,
-                        'body' => $request['message'],
+                        'body' => $parseMessage,
                         'statusCallback' => env('TWILIO_STATUS_CALLBACK_URL'),
                     ]
                 );
 
-                $message['result'][] = ['status' => $result->status, 'contact_ids' => $contact->id, 'created_at' => $result->dateCreated];
+                $message['result'][] = ['status' => $result->status, 'contact_ids' => $contact->id, 'created_at' => $result->dateCreated, 'message' => $parseMessage];
                 $message['contact_ids'][] = $contact->id;
             }
         });
