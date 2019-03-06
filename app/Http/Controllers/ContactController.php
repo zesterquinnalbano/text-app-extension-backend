@@ -43,7 +43,7 @@ class ContactController extends Controller
             'firstname' => 'required',
             'lastname' => 'required',
             'contact_number' => 'required|unique:contacts,contact_number',
-            'contact_group' => 'required',
+            'contact_group' => 'nullable',
         ]);
 
         $pos = strpos($validatedInput['contact_number'], '+');
@@ -85,6 +85,7 @@ class ContactController extends Controller
             'firstname' => 'required',
             'lastname' => 'required',
             'contact_number' => ['required', Rule::unique('contacts', 'contact_number')->ignore($contact->id)],
+            'contact_group' => 'nullable',
         ]);
 
         $pos = strpos($validatedInput['contact_number'], '+');
@@ -93,6 +94,9 @@ class ContactController extends Controller
             $validatedInput['contact_number'] = '+' . $validatedInput['contact_number'];
         }
 
+        $contactGroup = ContactGroup::firstOrCreate(['name' => $validatedInput['contact_group']]);
+
+        $validatedInput['contact_group_id'] = $contactGroup->id;
         $contact = tap($contact)->update($validatedInput);
 
         return response()->json([
