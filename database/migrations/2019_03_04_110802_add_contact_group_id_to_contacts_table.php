@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-class AddCreatedByToContactsTable extends Migration
+class AddContactGroupIdToContactsTable extends Migration
 {
     /**
      * Run the migrations.
@@ -14,9 +14,8 @@ class AddCreatedByToContactsTable extends Migration
     public function up()
     {
         Schema::table('contacts', function (Blueprint $table) {
-            $table->unsignedInteger('created_by')->nullable()->after('contact_number');
-
-            $table->foreign("created_by")->references('id')->on('users')->onUpdate('cascade')->onDelete('cascade');
+            $table->unsignedInteger('contact_group_id')->nullable()->after('created_by');
+            $table->foreign("contact_group_id")->references('id')->on('contact_groups')->onUpdate('cascade')->onDelete('cascade');
         });
     }
 
@@ -28,7 +27,7 @@ class AddCreatedByToContactsTable extends Migration
     public function down()
     {
         Schema::table('contacts', function (Blueprint $table) {
-            $table->dropColumn('created_by');
+            $table->dropColumn('contact_group_id');
         });
     }
 }

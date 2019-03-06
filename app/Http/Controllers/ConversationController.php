@@ -101,14 +101,14 @@ class ConversationController extends Controller
     public function sendNew(Request $request, TwilioHelper $twilioHelper)
     {
         $validatedInput = $this->validate($request, [
-            'contact_number_id' => 'required|array|exists:contacts,id',
+            'contact_number_id' => 'required|array',
             'twilio_number_id' => 'required|exists:twilio_numbers,id',
             'message' => 'required|min:1',
         ]);
 
         $message = $twilioHelper->sendMany($validatedInput);
 
-        DB::transaction(function () use ($validatedInput, &$messageStatus, $message) {
+        DB::transaction(function () use ($validatedInput, $message) {
 
             for ($i = 0; $i < count($message['contact_ids']); $i++) {
 
@@ -126,7 +126,6 @@ class ConversationController extends Controller
                     'created_at' => $message['result'][$i]['created_at'],
                 ]);
             }
-
         }, 3);
 
         return response()->json([

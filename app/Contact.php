@@ -9,6 +9,7 @@ class Contact extends Model
         'lastname',
         'contact_number',
         'created_by',
+        'contact_group_id',
     ];
 
     protected $appends = [
@@ -29,5 +30,10 @@ class Contact extends Model
     public function messages()
     {
         return $this->hasMany('App\Message', 'from');
+    }
+
+    public function contactGroup()
+    {
+        return $this->belongsTo('App\ContactGroup', 'contact_group_id');
     }
 }

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Contact;
+use App\ContactGroup;
 use App\Http\Controllers\ImportController;
 use Auth;
 use Illuminate\Http\Request;
@@ -23,7 +24,8 @@ class ContactController extends Controller
             });
         });
 
-        $contact = $contact->whereCreatedBy(Auth::id())
+        $contact = $contact->with('contactGroup')
+            ->whereCreatedBy(Auth::id())
             ->orderBy('firstname')
             ->limit($param->limit)
             ->offset($param->offset)
@@ -41,6 +43,7 @@ class ContactController extends Controller
             'firstname' => 'required',
             'lastname' => 'required',
             'contact_number' => 'required|unique:contacts,contact_number',
+            'contact_group' => 'required',
         ]);
 
         $pos = strpos($validatedInput['contact_number'], '+');
@@ -49,6 +52,9 @@ class ContactController extends Controller
             $validatedInput['contact_number'] = '+' . $validatedInput['contact_number'];
         }
 
+        $contactGroup = ContactGroup::firstOrCreate(['name' => $validatedInput['contact_group']]);
+
+        $validatedInput['contact_group_id'] = $contactGroup->id;
         $validatedInput['created_by'] = Auth::id();
 
         $contact = Contact::create($validatedInput);
@@ -63,7 +69,7 @@ class ContactController extends Controller
 
     public function edit($id)
     {
-        $contact = Contact::find($id);
+        $contact = Contact::find($id)->load('contactGroup');
 
         return response()->json([
             'result' => true,
@@ -106,10 +112,40 @@ class ContactController extends Controller
         ]);
     }
 
+    public function search(Request $request)
+    {
+        $param = json_decode($request->q);
+        $contact = Contact::query();
+
+        $contact->when(isset($param->query), function ($query) use ($param) {
+            $query->where(function ($query) use ($param) {
+                $query->where('firstname', 'like', "%$param->query%")
+                    ->orWhere('lastname', 'like', "%$param->query%");
+            });
+        });
+
+        $contact = $contact->with('contactGroup')
+            ->whereCreatedBy(Auth::id())
+            ->orderBy('firstname')
+            ->limit($param->limit)
+            ->offset($param->offset)
+            ->get();
+
+        if ($param->query == "") {
+            return response()->json([
+                'result' => true,
+                'data' => [],
+            ]);
+        }
+
+        return response()->json([
+            'result' => true,
+            'data' => $contact,
+        ]);
+    }
+
     public function import(Request $request)
     {
-        var_dump('asd');
-        die();
         Excel::import(new ImportController);
     }
 }

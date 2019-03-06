@@ -11,6 +11,6 @@ class DatabaseSeeder extends Seeder
      */
     public function run()
     {
-        $this->call(['ContactsTableSeeder', 'TwilioNumbersTableSeeder', 'ConversationsTableSeeder', 'UsersTableSeeder', 'MessagesTableSeeder']);
+        $this->call(['UsersTableSeeder', 'ContactsTableSeeder', 'TwilioNumbersTableSeeder', 'ConversationsTableSeeder', 'MessagesTableSeeder']);
     }
 }

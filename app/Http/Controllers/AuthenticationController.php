@@ -29,7 +29,7 @@ class AuthenticationController extends Controller
     {
         return response()->json([
             'result' => true,
-            'data' => Auth::user(),
+            'data' => Auth::user()->load('twilioNumber'),
         ]);
     }
 
@@ -40,15 +40,17 @@ class AuthenticationController extends Controller
             'lastname' => 'required',
             'username' => 'required',
             'password' => 'sometimes|min:6',
+            'twilio_number' => 'required',
         ]);
 
         if (isset($validatedInput['password'])) {
             $validatedInput['password'] = Hash::make($validatedInput['password']);
         }
 
-        $user = User::whereId(Auth::id())->update($validatedInput);
+        $user = tap(User::find(Auth::id()))->update(collect($validatedInput)->except(['twilio_number'])->all());
+        $user->twilioNumber->update(['contact_number' => $validatedInput['contact_number']]);
 
-        return response()->json(['message' => 'Successfully updated user information', 200]);
+        return response()->json(['message' => 'Successfully updated user information'], 200);
     }
 
     public function logout()

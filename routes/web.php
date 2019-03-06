@@ -27,11 +27,11 @@ $router->group(['middleware' => 'auth'], function ($router) {
 
     $router->group(['prefix' => 'contacts'], function ($router) {
         $router->get('/', 'ContactController@index');
-        $router->post('/store', 'ContactController@store');
+        $router->post('store', 'ContactController@store');
         $router->get('{id}/edit', 'ContactController@edit');
         $router->patch('{id}/update', 'ContactController@update');
         $router->post('{id}/destroy', 'ContactController@destroy');
-
+        $router->get('search', 'ContactController@search');
     });
 
     $router->group(['prefix' => 'conversations'], function ($router) {
@@ -42,6 +42,8 @@ $router->group(['middleware' => 'auth'], function ($router) {
         $router->patch('{id}/update-new-message', 'ConversationController@update');
         $router->post('{id}/destroy', 'ConversationController@destroy');
     });
+
+    $router->get('contact-groups', 'ContactGroupController');
 
     $router->group(['prefix' => 'twilio-numbers'], function ($router) {
         $router->get('/', 'TwilioNumberController');

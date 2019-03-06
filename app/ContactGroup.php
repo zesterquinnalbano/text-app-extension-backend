@@ -2,11 +2,10 @@
 
 use Illuminate\Database\Eloquent\Model;
 
-class TwilioNumber extends Model
+class ContactGroup extends Model
 {
     protected $fillable = [
-        'contact_number',
-        'user_id',
+        'name',
     ];
 
     protected $hidden = [
@@ -15,8 +14,8 @@ class TwilioNumber extends Model
         'deleted_at',
     ];
 
-    public function user()
+    public function contacts()
     {
-        return $this->belongsTo('App\User', 'user_id');
+        return $this->hasMany('App\Contact', 'contact_group_id');
     }
 }

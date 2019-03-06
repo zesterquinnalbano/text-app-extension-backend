@@ -3,6 +3,7 @@
 namespace App\Helpers;
 
 use App\Contact;
+use App\ContactGroup;
 use App\TwilioNumber;
 use Twilio\Rest\Client;
 
@@ -50,11 +51,18 @@ class TwilioHelper
     public static function sendMany($request)
     {
         $twilioNumber = TwilioNumber::find($request['twilio_number_id']);
-        $contacts = Contact::find($request['contact_number_id']);
-
+        $contacts = collect([]);
+        collect($request['contact_number_id'])->each(function ($item) use ($contacts) {
+            if (is_numeric($item)) {
+                $contacts[] = Contact::find($item);
+            } else {
+                $contactGroup = ContactGroup::with('contacts')->where(['name' => $item])->first();
+                $contacts[] = $contactGroup->contacts;
+            }
+        });
         $message = [];
 
-        collect($contacts)->each(function ($contact, $key) use ($request, $twilioNumber, &$message) {
+        collect($contacts->flatten(2)->unique('id')->all())->each(function ($contact, $key) use ($request, $twilioNumber, &$message) {
             if ($contact != null) {
                 $result = self::$twilioClient->messages->create(
                     $contact->contact_number,
