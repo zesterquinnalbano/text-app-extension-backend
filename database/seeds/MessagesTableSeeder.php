@@ -19,7 +19,7 @@ class MessagesTableSeeder extends Seeder
                 'direction' => 'INBOUND',
                 'message' => 'hi',
                 'sent_by' => null,
-                'status' => 'recieved',
+                'status' => 'received',
                 'created_at' => Carbon::now(),
             ],
         ]);

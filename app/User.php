@@ -66,8 +66,8 @@ class User extends Model implements JWTSubject, AuthenticatableContract, Authori
         return "$this->firstname $this->lastname";
     }
 
-    public function twilioNumber()
+    public function twilioNumbers()
     {
-        return $this->hasOne('App\TwilioNumber', 'user_id');
+        return $this->hasMany('App\TwilioNumber', 'user_id');
     }
 }

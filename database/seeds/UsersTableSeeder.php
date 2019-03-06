@@ -13,11 +13,20 @@ class UsersTableSeeder extends Seeder
      */
     public function run()
     {
-        User::create([
-            'firstname' => 'Zester Quinn',
-            'lastname' => 'Albano',
-            'username' => 'admin',
-            'password' => Hash::make('admin'),
+        User::insert([
+            [
+                'firstname' => 'Daryll',
+                'lastname' => 'Daley',
+                'username' => 'daryll',
+                'password' => Hash::make('daryll123'),
+            ],
+            [
+                'firstname' => 'Gareth',
+                'lastname' => 'Callaway',
+                'username' => 'gareth',
+                'password' => Hash::make('gareth123'),
+            ],
         ]);
+
     }
 }
